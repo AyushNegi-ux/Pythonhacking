@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Access Request</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0b0c10; --surface: #13151b; --border: #222536;
+      --accent: #00e5ff; --accent2: #ff4d6d; --text: #e8eaf0;
+      --muted: #6b7080; --green: #00e676;
+    }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh; display: flex;
+      align-items: center; justify-content: center;
+      overflow: hidden; position: relative;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      animation: gridShift 20s linear infinite;
+      pointer-events: none; z-index: 0;
+    }
+    @keyframes gridShift { 0%{transform:translateY(0)} 100%{transform:translateY(40px)} }
+    .orb { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 0; opacity: 0.18; }
+    .orb1 { width:400px;height:400px;background:var(--accent);top:-100px;right:-100px;animation:float1 8s ease-in-out infinite; }
+    .orb2 { width:300px;height:300px;background:var(--accent2);bottom:-80px;left:-80px;animation:float2 10s ease-in-out infinite; }
+    @keyframes float1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-30px,30px)} }
+    @keyframes float2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,-20px)} }
+    .container { position:relative;z-index:1;width:100%;max-width:520px;padding:20px; }
+    .card {
+      background:var(--surface); border:1px solid var(--border); border-radius:16px;
+      padding:44px 40px;
+      box-shadow:0 0 60px rgba(0,229,255,0.06),0 20px 60px rgba(0,0,0,0.5);
+      animation:cardIn 0.6s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    @keyframes cardIn { from{opacity:0;transform:translateY(30px) scale(0.97)} to{opacity:1;transform:none} }
+    .icon-wrap {
+      width:64px;height:64px;border-radius:14px;
+      background:linear-gradient(135deg,rgba(0,229,255,0.15),rgba(0,229,255,0.05));
+      border:1px solid rgba(0,229,255,0.25);
+      display:flex;align-items:center;justify-content:center;
+      margin-bottom:28px;position:relative;overflow:hidden;
+    }
+    .icon-wrap::after {
+      content:'';position:absolute;inset:0;
+      background:linear-gradient(135deg,rgba(0,229,255,0.1),transparent);
+      animation:shimmer 3s ease-in-out infinite;
+    }
+    @keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .icon-wrap svg { position:relative;z-index:1; }
+    .label { font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:10px;opacity:0.8; }
+    h1 { font-family:'Syne',sans-serif;font-size:26px;font-weight:800;line-height:1.25;margin-bottom:14px;color:#fff; }
+    .desc { font-size:13px;line-height:1.8;color:var(--muted);margin-bottom:28px; }
+    .data-list {
+      background:rgba(255,255,255,0.03);border:1px solid var(--border);
+      border-radius:10px;padding:16px 20px;margin-bottom:30px;
+      list-style:none;display:flex;flex-direction:column;gap:10px;
+    }
+    .data-list li { display:flex;align-items:center;gap:10px;font-size:12px;color:#a0a8be; }
+    .data-list li::before {
+      content:'';width:6px;height:6px;border-radius:50%;
+      background:var(--accent);flex-shrink:0;box-shadow:0 0 6px var(--accent);
+    }
+    .btn-group { display:flex;gap:12px; }
+    .btn {
+      flex:1;padding:14px 20px;border-radius:10px;
+      font-family:'DM Mono',monospace;font-size:13px;font-weight:500;
+      letter-spacing:0.5px;border:none;cursor:pointer;
+      transition:all 0.2s;position:relative;overflow:hidden;
+    }
+    .btn::after { content:'';position:absolute;inset:0;background:white;opacity:0;transition:opacity 0.15s; }
+    .btn:active::after { opacity:0.07; }
+    .btn-allow { background:var(--accent);color:#0b0c10;font-weight:700; }
+    .btn-allow:hover { background:#33eeff;transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,229,255,0.3); }
+    .btn-deny { background:transparent;color:var(--muted);border:1px solid var(--border); }
+    .btn-deny:hover { color:var(--accent2);border-color:var(--accent2);transform:translateY(-1px); }
+    .privacy-note { margin-top:20px;font-size:10px;color:#444;text-align:center;line-height:1.6; }
+    .success-card { display:none;text-align:center; }
+    .success-card.show { display:block;animation:cardIn 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+    .check-ring {
+      width:80px;height:80px;border-radius:50%;border:2px solid var(--green);
+      display:flex;align-items:center;justify-content:center;
+      margin:0 auto 24px;animation:ringPop 0.5s cubic-bezier(0.22,1,0.36,1) both;
+      box-shadow:0 0 30px rgba(0,230,118,0.2);
+    }
+    @keyframes ringPop { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
+    .data-received {
+      background:rgba(0,230,118,0.04);border:1px solid rgba(0,230,118,0.15);
+      border-radius:12px;padding:20px 24px;margin:24px 0;text-align:left;
+    }
+    .data-received h3 {
+      font-family:'Syne',sans-serif;font-size:11px;letter-spacing:2px;
+      text-transform:uppercase;color:var(--green);margin-bottom:14px;
+    }
+    .data-row {
+      display:flex;justify-content:space-between;align-items:flex-start;
+      padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04);gap:12px;
+    }
+    .data-row:last-child { border-bottom:none; }
+    .data-key { font-size:11px;color:var(--muted);flex-shrink:0; }
+    .data-val { font-size:11px;color:var(--text);text-align:right;word-break:break-all; }
+    .tg-badge {
+      display:inline-flex;align-items:center;gap:6px;
+      background:rgba(0,136,204,0.12);border:1px solid rgba(0,136,204,0.3);
+      border-radius:20px;padding:5px 12px;font-size:11px;color:#29b6f6;margin-top:14px;
+    }
+    .denied-card { display:none;text-align:center; }
+    .denied-card.show { display:block;animation:cardIn 0.5s cubic-bezier(0.22,1,0.36,1) both; }
+    .loading { display:none;gap:6px;justify-content:center;padding:8px 0; }
+    .loading.show { display:flex; }
+    .dot { width:8px;height:8px;border-radius:50%;background:var(--accent);animation:bounce 0.8s ease-in-out infinite; }
+    .dot:nth-child(2){animation-delay:0.15s} .dot:nth-child(3){animation-delay:0.3s}
+    @keyframes bounce { 0%,100%{transform:translateY(0);opacity:0.4} 50%{transform:translateY(-8px);opacity:1} }
+    @media(max-width:480px){ .card{padding:32px 24px} .btn-group{flex-direction:column} h1{font-size:22px} }
+  </style>
+</head>
+<body>
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="container">
+
+    <!-- PERMISSION CARD -->
+    <div class="card" id="permCard">
+      <div class="icon-wrap">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <p class="label">Data Access Request</p>
+      <h1>This site wants to<br/>collect your data</h1>
+      <p class="desc">Before you continue, please review the information we'd like to collect and grant your permission.</p>
+      <ul class="data-list">
+        <li>Your browser &amp; operating system</li>
+        <li>IP address &amp; approximate location</li>
+        <li>Device type &amp; screen resolution</li>
+        <li>Current date &amp; local time</li>
+        <li>Battery level &amp; connection type</li>
+      </ul>
+      <div class="btn-group">
+        <button class="btn btn-allow" onclick="handleAllow()">✓ Allow Access</button>
+        <button class="btn btn-deny" onclick="handleDeny()">✗ Deny</button>
+      </div>
+      <p class="privacy-note">Your data is used for analytics only.</p>
+    </div>
+
+    <!-- LOADING -->
+    <div class="card" id="loadCard" style="display:none;text-align:center;padding:48px 40px;">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:20px;letter-spacing:2px;text-transform:uppercase;">Collecting &amp; sending data</p>
+      <div class="loading show"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    </div>
+
+    <!-- SUCCESS CARD -->
+    <div class="card success-card" id="successCard">
+      <div class="check-ring">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00e676" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <p class="label" style="color:var(--green);text-align:center;">Permission Granted</p>
+      <h1 style="text-align:center;font-size:22px;">Data received<br/>successfully</h1>
+      <div class="data-received" id="dataDisplay"><h3>📡 Collected Data</h3></div>
+      <div style="text-align:center;">
+        <div class="tg-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#29b6f6">
+            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 13.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.828.942z"/>
+          </svg>
+          Sent to your Telegram bot ✅
+        </div>
+      </div>
+    </div>
+
+    <!-- DENIED CARD -->
+    <div class="card denied-card" id="deniedCard">
+      <div style="width:80px;height:80px;border-radius:50%;border:2px solid var(--accent2);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;box-shadow:0 0 30px rgba(255,77,109,0.2);">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ff4d6d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </div>
+      <p class="label" style="color:var(--accent2);">Access Denied</p>
+      <h1 style="font-size:22px;">No data collected</h1>
+      <p style="font-size:13px;color:var(--muted);margin-top:12px;line-height:1.8;">You chose to deny access.<br/>Nothing has been stored or sent.</p>
+      <button class="btn btn-deny" style="margin-top:28px;width:100%;" onclick="reset()">← Go Back</button>
+    </div>
+
+  </div>
+
+  <script>
+    const BOT_TOKEN = '8005097155:AAEdRKRcUh-DzczhLEmNvHMnp4b6pgtDVTk';
+    const CHAT_ID   = '7034821913';
+
+    function handleAllow() {
+      document.getElementById('permCard').style.display = 'none';
+      document.getElementById('loadCard').style.display = 'block';
+      setTimeout(async () => {
+        const data = await gatherData();
+        await sendToTelegram(data);
+        showSuccess(data);
+      }, 1800);
+    }
+
+    function handleDeny() {
+      document.getElementById('permCard').style.display = 'none';
+      document.getElementById('deniedCard').classList.add('show');
+    }
+
+    function reset() {
+      document.getElementById('deniedCard').classList.remove('show');
+      document.getElementById('permCard').style.display = 'block';
+    }
+
+    async function gatherData() {
+      let ip = 'Unknown', city = 'Unknown', country = 'Unknown', isp = 'Unknown', timezone = 'Unknown', region = 'Unknown';
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        const geo = await res.json();
+        ip       = geo.ip             || 'Unknown';
+        city     = geo.city           || 'Unknown';
+        region   = geo.region         || 'Unknown';
+        country  = geo.country_name   || 'Unknown';
+        isp      = geo.org            || 'Unknown';
+        timezone = geo.timezone       || 'Unknown';
+      } catch(e) {}
+
+      const now = new Date();
+      return {
+        '🌐 IP Address':    ip,
+        '📍 City':          city,
+        '🗺️ Region':        region,
+        '🌍 Country':       country,
+        '🏢 ISP':           isp,
+        '🕰️ Timezone':      timezone,
+        '🖥️ Browser':       getBrowser(),
+        '💻 OS':            getOS(),
+        '📱 Device':        isMobile() ? 'Mobile/Tablet' : 'Desktop',
+        '📐 Screen':        `${screen.width}×${screen.height}`,
+        '🗣️ Language':      navigator.language || 'Unknown',
+        '🕐 Local Time':    now.toLocaleTimeString(),
+        '📅 Date':          now.toLocaleDateString(),
+        '🔗 Referrer':      document.referrer || 'Direct',
+        '🍪 Cookies':       navigator.cookieEnabled ? 'Enabled' : 'Disabled',
+        '🌑 Dark Mode':     window.matchMedia('(prefers-color-scheme:dark)').matches ? 'Yes' : 'No',
+        '📶 Connection':    getConnection(),
+        '🔋 Battery':       await getBattery(),
+        '🖱️ Touch':         ('ontouchstart' in window) ? 'Yes' : 'No',
+        '🧭 User Agent':    navigator.userAgent,
+      };
+    }
+
+    async function sendToTelegram(data) {
+      const lines = Object.entries(data)
+        .map(([k, v]) => `${k}: <b>${escapeHtml(String(v))}</b>`)
+        .join('\n');
+
+      const msg = `🔔 <b>New Visitor Data!</b>\n` +
+                  `━━━━━━━━━━━━━━━━━━━\n` +
+                  `${lines}\n` +
+                  `━━━━━━━━━━━━━━━━━━━\n` +
+                  `✅ <i>User granted permission</i>`;
+      try {
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: CHAT_ID, text: msg, parse_mode: 'HTML' })
+        });
+      } catch(e) { console.error('Telegram error:', e); }
+    }
+
+    function showSuccess(data) {
+      document.getElementById('loadCard').style.display = 'none';
+      const display = document.getElementById('dataDisplay');
+      display.innerHTML = '<h3>📡 Collected Data</h3>';
+      Object.entries(data).forEach(([key, val]) => {
+        if (key === '🧭 User Agent') return;
+        const row = document.createElement('div');
+        row.className = 'data-row';
+        row.innerHTML = `<span class="data-key">${key}</span><span class="data-val">${val}</span>`;
+        display.appendChild(row);
+      });
+      document.getElementById('successCard').classList.add('show');
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function getBrowser() {
+      const ua = navigator.userAgent;
+      if (ua.includes('Edg'))    return 'Microsoft Edge';
+      if (ua.includes('OPR') || ua.includes('Opera')) return 'Opera';
+      if (ua.includes('Chrome')) return 'Google Chrome';
+      if (ua.includes('Firefox'))return 'Mozilla Firefox';
+      if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Apple Safari';
+      return 'Unknown';
+    }
+
+    function getOS() {
+      const ua = navigator.userAgent;
+      if (ua.includes('Windows NT 10.0')) return 'Windows 10/11';
+      if (ua.includes('Windows'))  return 'Windows';
+      if (ua.includes('Mac'))      return 'macOS';
+      if (ua.includes('Android'))  return 'Android';
+      if (/iPad|iPhone|iPod/.test(ua)) return 'iOS';
+      if (ua.includes('Linux'))   return 'Linux';
+      return 'Unknown';
+    }
+
+    function isMobile() { return /Mobi|Android/i.test(navigator.userAgent); }
+
+    function getConnection() {
+      const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      if (!c) return 'Unknown';
+      return c.effectiveType ? c.effectiveType.toUpperCase() : (c.type || 'Unknown');
+    }
+
+    async function getBattery() {
+      try {
+        const b = await navigator.getBattery();
+        return `${Math.round(b.level * 100)}% ${b.charging ? '⚡ Charging' : ''}`;
+      } catch(e) { return 'N/A'; }
+    }
+  </script>
+</body>
+</html>
